@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Product Recommendations</title>
+<meta name="description" content="Concept prototype: YouTube Shopping recommendations grounded in content, audience, shopping performance and product trust, with suggested timestamps and a viewer preview.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://kaizoku2495.github.io/youtube-shopping-prototype/">
+<meta property="og:title" content="Smart Product Recommendations for YouTube Shopping">
+<meta property="og:description" content="Concept prototype by Sai Pradyumna Maddali: product suggestions grounded in content, audience, shopping performance and product trust.">
+<meta property="og:image" content="https://kaizoku2495.github.io/youtube-shopping-prototype/preview.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f6f5f1; --surface:#ffffff; --surface-2:#f0eee7; --surface-3:#e8e5dc; --border:#e0ddd3;
+    --text:#18181a; --text-dim:#65635c; --text-faint:#95928a;
+    --accent:#d8311f; --accent-ink:#ffffff; --ai:#5a5fd6; --ai-soft:#eceaff;
+    --good:#1f9d63; --good-soft:#e5f6ee; --warn:#b8791a; --warn-soft:#faefdb; --bad:#c2352a; --bad-soft:#fbe7e4;
+    --player:#141416;
+    --shadow: 0 1px 2px rgba(20,18,10,.04), 0 8px 24px -12px rgba(20,18,10,.18);
+    --radius-lg:18px; --radius-md:12px; --radius-sm:8px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0e0e10; --surface:#18181b; --surface-2:#212226; --surface-3:#2b2c31; --border:#313236;
+      --text:#f3f2ee; --text-dim:#a7a5a0; --text-faint:#77756f;
+      --accent:#ff5a45; --accent-ink:#180705; --ai:#9a9eff; --ai-soft:#26264a;
+      --good:#3fd08a; --good-soft:#123626; --warn:#f2ab4c; --warn-soft:#3a2c12; --bad:#ff7a6b; --bad-soft:#3a1714;
+      --player:#070708;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 32px -12px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e0e10; --surface:#18181b; --surface-2:#212226; --surface-3:#2b2c31; --border:#313236;
+    --text:#f3f2ee; --text-dim:#a7a5a0; --text-faint:#77756f;
+    --accent:#ff5a45; --accent-ink:#180705; --ai:#9a9eff; --ai-soft:#26264a;
+    --good:#3fd08a; --good-soft:#123626; --warn:#f2ab4c; --warn-soft:#3a2c12; --bad:#ff7a6b; --bad-soft:#3a1714;
+    --player:#070708;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 32px -12px rgba(0,0,0,.6);
+  }
+
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Manrope',system-ui,-apple-system,sans-serif;padding-inline:16px;}
+  h1,h2,h3{font-family:'Sora',system-ui,sans-serif;text-wrap:balance;}
+  .mono{font-family:'IBM Plex Mono',ui-monospace,monospace;}
+  button{font:inherit;color:inherit;}
+  [hidden]{display:none !important;}
+
+  .page{max-width:1080px;margin:0 auto;padding-block:28px 60px;display:flex;flex-direction:column;gap:18px;}
+  .masthead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .masthead h1{font-size:1.05rem;font-weight:700;margin:0;}
+  .masthead .sub{color:var(--text-faint);font-size:.8rem;margin-top:2px;}
+  .concept-pill{font-family:'IBM Plex Mono',monospace;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);border:1px solid var(--border);padding:5px 10px;border-radius:999px;white-space:nowrap;}
+
+  .frame{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;}
+  .topbar{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);}
+  .mark{width:30px;height:30px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .mark svg{width:14px;height:14px;fill:var(--accent-ink);}
+  .brand{display:flex;flex-direction:column;line-height:1.15;}
+  .brand b{font-family:'Sora',sans-serif;font-size:.86rem;}
+  .brand span{font-size:.72rem;color:var(--text-faint);}
+  .spacer{flex:1;}
+  .topbar-tag{font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--ai);background:var(--ai-soft);padding:4px 9px;border-radius:999px;display:flex;align-items:center;gap:5px;}
+  .topbar-tag .dot{width:5px;height:5px;border-radius:50%;background:var(--ai);}
+
+  .app{display:flex;}
+  .rail{width:56px;flex-shrink:0;border-right:1px solid var(--border);padding-block:16px;display:flex;flex-direction:column;align-items:center;gap:18px;}
+  .rail i{width:20px;height:20px;border-radius:5px;background:var(--surface-3);display:block;}
+  .rail i.on{background:var(--accent);}
+  .main{flex:1;min-width:0;padding:22px 24px 26px;display:flex;flex-direction:column;gap:20px;}
+
+  .video-card{display:flex;gap:14px;align-items:center;padding:12px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md);}
+  .thumb{width:96px;height:58px;border-radius:7px;flex-shrink:0;position:relative;overflow:hidden;
+    background:radial-gradient(120% 160% at 20% 15%, #ffd88a 0%, transparent 45%),radial-gradient(120% 160% at 85% 90%, #7c8cff 0%, transparent 50%),linear-gradient(135deg,#3a3660,#201f33);}
+  .video-meta h2{font-size:.98rem;margin:0 0 3px;}
+  .video-meta .row{font-size:.76rem;color:var(--text-faint);display:flex;gap:8px;flex-wrap:wrap;}
+  .video-meta .row span::after{content:"·";margin-left:8px;}
+  .video-meta .row span:last-child::after{content:"";}
+
+  .stepper{display:flex;gap:6px;border-bottom:1px solid var(--border);overflow-x:auto;}
+  .step-btn{background:none;border:none;cursor:pointer;padding:9px 4px 12px;display:flex;align-items:center;gap:8px;color:var(--text-faint);font-size:.82rem;font-weight:600;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;}
+  .step-btn .num{width:18px;height:18px;border-radius:50%;background:var(--surface-3);color:var(--text-dim);font-family:'IBM Plex Mono',monospace;font-size:.66rem;display:flex;align-items:center;justify-content:center;}
+  .step-btn+.step-btn{margin-left:8px;}
+  .step-btn[aria-selected="true"]{color:var(--text);border-color:var(--accent);}
+  .step-btn[aria-selected="true"] .num{background:var(--accent);color:var(--accent-ink);}
+  .step-btn:focus-visible,.card:focus-visible,.moment:focus-visible{outline:2px solid var(--ai);outline-offset:3px;}
+
+  .panel{display:flex;flex-direction:column;gap:18px;}
+  .section-title{font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);font-weight:700;margin:0;}
+
+  /* analysing */
+  .analysing{display:flex;flex-direction:column;align-items:center;gap:12px;padding:40px 0;color:var(--text-dim);font-size:.85rem;}
+  .spinner{width:28px;height:28px;border-radius:50%;border:3px solid var(--surface-3);border-top-color:var(--ai);animation:spin 0.9s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .analysing .log{font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text-faint);min-height:1.2em;}
+
+  /* signals */
+  .signal-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+  @media (max-width:900px){.signal-strip{grid-template-columns:repeat(2,1fr);}}
+  @media (max-width:520px){.signal-strip{grid-template-columns:1fr;}}
+  .signal{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:13px 14px;display:flex;flex-direction:column;gap:8px;}
+  .signal.new{border-color:var(--ai);}
+  .signal .label{font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);font-weight:700;display:flex;justify-content:space-between;gap:6px;}
+  .signal .label em{font-style:normal;color:var(--ai);}
+  .pills{display:flex;flex-wrap:wrap;gap:6px;}
+  .pill{font-size:.72rem;padding:4px 9px;border-radius:999px;background:var(--surface);border:1px solid var(--border);color:var(--text-dim);}
+  .signal p{margin:0;font-size:.76rem;color:var(--text-dim);line-height:1.5;}
+  .fade-in{animation:fade .35s ease both;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+  /* moments timeline */
+  .timeline-box{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px;}
+  .track{position:relative;height:34px;}
+  .track .line{position:absolute;left:0;right:0;top:15px;height:4px;border-radius:4px;background:var(--surface-3);}
+  .moment{position:absolute;top:6px;width:22px;height:22px;margin-left:-11px;border-radius:50%;border:2px solid var(--surface);background:var(--ai);cursor:pointer;padding:0;}
+  .moment.on{background:var(--accent);transform:scale(1.15);}
+  .track-labels{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:.66rem;color:var(--text-faint);}
+  .moment-detail{display:flex;gap:12px;align-items:flex-start;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;}
+  .moment-detail .ts{font-family:'IBM Plex Mono',monospace;font-size:.75rem;color:var(--accent);flex-shrink:0;padding-top:1px;}
+  .moment-detail p{margin:0 0 4px;font-size:.82rem;}
+  .moment-detail .quote{color:var(--text-dim);font-style:italic;}
+  .linkish{background:none;border:none;color:var(--ai);font-weight:700;font-size:.78rem;cursor:pointer;padding:0;}
+
+  /* compare toggle */
+  .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+  .seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--border);border-radius:999px;padding:3px;}
+  .seg button{border:none;background:none;padding:6px 12px;border-radius:999px;font-size:.78rem;font-weight:600;color:var(--text-dim);cursor:pointer;}
+  .seg button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12);}
+  .switch{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--text-dim);cursor:pointer;user-select:none;}
+  .switch input{accent-color:var(--accent);width:15px;height:15px;}
+  .prompt-line{font-family:'Sora',sans-serif;font-size:1rem;font-weight:600;line-height:1.4;max-width:62ch;margin:0;}
+
+  /* cards */
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+  @media (max-width:680px){.grid{grid-template-columns:1fr;}}
+  .card{border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface);padding:14px;display:flex;flex-direction:column;gap:10px;position:relative;transition:border-color .15s ease, box-shadow .2s ease;}
+  .card.selectable{cursor:pointer;}
+  .card.selectable:hover{border-color:var(--text-faint);}
+  .card.selected{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);}
+  .card.flash{box-shadow:0 0 0 3px var(--ai);}
+  .card-top{display:flex;gap:12px;}
+  .icon-tile{width:52px;height:52px;border-radius:11px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+  .icon-tile svg{width:28px;height:28px;}
+  .card-heading{min-width:0;flex:1;}
+  .card-heading h3{margin:0 0 3px;font-size:.92rem;}
+  .meta-line{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.74rem;color:var(--text-dim);}
+  .price{font-family:'IBM Plex Mono',monospace;color:var(--text);font-weight:500;}
+  .badge{font-size:.64rem;font-weight:700;letter-spacing:.03em;padding:2px 7px;border-radius:999px;border:1px solid var(--border);color:var(--text-dim);white-space:nowrap;}
+  .badge.seen{background:var(--good-soft);color:var(--good);border-color:transparent;}
+  .badge.similar{background:var(--ai-soft);color:var(--ai);border-color:transparent;}
+  .trust{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:.72rem;color:var(--text-dim);}
+  .trust b{color:var(--text);font-weight:600;}
+  .trust .ok{color:var(--good);font-weight:600;}
+  .confidence{display:flex;align-items:center;gap:8px;}
+  .confidence .bar{flex:1;height:5px;border-radius:4px;background:var(--surface-3);overflow:hidden;}
+  .confidence .bar>i{display:block;height:100%;border-radius:4px;}
+  .confidence .tag{font-family:'IBM Plex Mono',monospace;font-size:.66rem;padding:2px 7px;border-radius:999px;white-space:nowrap;}
+  .conf-high .bar>i{background:var(--good);}
+  .conf-high .tag{background:var(--good-soft);color:var(--good);}
+  .conf-med .bar>i{background:var(--warn);}
+  .conf-med .tag{background:var(--warn-soft);color:var(--warn);}
+  .why{background:var(--ai-soft);border-radius:var(--radius-sm);padding:9px 10px;display:flex;flex-direction:column;gap:8px;}
+  .why-top{display:flex;gap:7px;align-items:flex-start;}
+  .why svg{width:13px;height:13px;flex-shrink:0;margin-top:2px;fill:var(--ai);}
+  .why p{margin:0;font-size:.76rem;line-height:1.45;}
+  .scores{display:grid;grid-template-columns:auto 1fr auto;gap:5px 8px;align-items:center;font-size:.7rem;color:var(--text-dim);}
+  .scores .sbar{height:4px;border-radius:4px;background:var(--surface);overflow:hidden;}
+  .scores .sbar i{display:block;height:100%;background:var(--ai);border-radius:4px;transition:width .5s ease;}
+  .scores .val{font-family:'IBM Plex Mono',monospace;}
+  .ts-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.74rem;color:var(--text-dim);}
+  .ts-chip{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:999px;overflow:hidden;}
+  .ts-chip span{font-family:'IBM Plex Mono',monospace;font-size:.72rem;padding:3px 8px;color:var(--text);}
+  .ts-chip button{border:none;background:var(--surface-2);width:24px;height:24px;cursor:pointer;font-weight:700;color:var(--text-dim);}
+  .ts-chip button:hover{color:var(--text);}
+  .select-row{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:2px;}
+  .check{display:flex;align-items:center;gap:7px;font-size:.78rem;font-weight:600;color:var(--text-dim);}
+  .checkbox{width:17px;height:17px;border-radius:5px;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;}
+  .card.selected .checkbox{background:var(--accent);border-color:var(--accent);}
+  .checkbox svg{width:10px;height:10px;fill:#fff;opacity:0;}
+  .card.selected .checkbox svg{opacity:1;}
+  .card.selected .check{color:var(--text);}
+
+  /* keyword (today) cards */
+  .card.fail{border-style:dashed;}
+  .fail-note{background:var(--bad-soft);color:var(--bad);border-radius:var(--radius-sm);padding:8px 10px;font-size:.75rem;line-height:1.45;}
+  .fail-note b{display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;}
+  .match{font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--text-faint);}
+
+  /* filtered */
+  details.filtered{border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-2);}
+  details.filtered summary{cursor:pointer;padding:12px 14px;font-size:.82rem;font-weight:700;list-style:none;display:flex;justify-content:space-between;gap:10px;}
+  details.filtered summary::-webkit-details-marker{display:none;}
+  details.filtered summary .hint{font-weight:500;color:var(--text-faint);font-size:.76rem;}
+  details.filtered[open] summary .chev{transform:rotate(180deg);}
+  .chev{display:inline-block;transition:transform .2s ease;}
+  .filtered-list{padding:0 14px 14px;display:flex;flex-direction:column;gap:8px;}
+  .f-item{display:flex;gap:10px;align-items:flex-start;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 11px;}
+  .f-item .x{width:18px;height:18px;border-radius:50%;background:var(--bad-soft);color:var(--bad);font-size:.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+  .f-item b{font-size:.8rem;display:block;}
+  .f-item span{font-size:.74rem;color:var(--text-dim);}
+  .f-item .rule{font-family:'IBM Plex Mono',monospace;font-size:.66rem;color:var(--text-faint);margin-left:auto;white-space:nowrap;}
+
+  /* action bar */
+  .action-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:16px;}
+  .action-bar .count{font-size:.8rem;color:var(--text-dim);}
+  .action-bar .count b{color:var(--text);}
+  .btn{background:var(--accent);color:var(--accent-ink);border:none;padding:10px 18px;border-radius:999px;font-weight:700;font-size:.84rem;cursor:pointer;}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .btn-ghost{background:none;border:1px solid var(--border);color:var(--text-dim);padding:9px 16px;border-radius:999px;font-weight:600;font-size:.82rem;cursor:pointer;}
+
+  /* step 3 */
+  .success{display:flex;gap:12px;align-items:flex-start;background:var(--good-soft);border:1px solid var(--good);border-radius:var(--radius-md);padding:14px 16px;}
+  .success svg{width:18px;height:18px;fill:var(--good);flex-shrink:0;margin-top:1px;}
+  .success h3{margin:0 0 3px;font-size:.9rem;color:var(--good);}
+  .success p{margin:0;font-size:.8rem;color:var(--text-dim);line-height:1.5;}
+  .preview-wrap{display:grid;grid-template-columns:1.5fr 1fr;gap:14px;}
+  @media (max-width:820px){.preview-wrap{grid-template-columns:1fr;}}
+  .player{background:var(--player);border-radius:var(--radius-md);overflow:hidden;display:flex;flex-direction:column;}
+  .screen{position:relative;aspect-ratio:16/9;background:radial-gradient(90% 120% at 20% 15%, #ffd88a55 0%, transparent 45%),radial-gradient(90% 120% at 85% 90%, #7c8cff66 0%, transparent 50%),linear-gradient(135deg,#3a3660,#15141f);}
+  .screen .scene{position:absolute;left:16px;top:14px;font-family:'Sora',sans-serif;font-size:.8rem;color:#fff;opacity:.8;max-width:70%;}
+  .screen .bigplay{position:absolute;inset:0;margin:auto;width:58px;height:58px;border-radius:50%;background:rgba(0,0,0,.55);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .screen .bigplay svg{width:24px;height:24px;fill:#fff;margin-left:3px;}
+  .banner{position:absolute;left:12px;bottom:12px;right:12px;max-width:340px;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.96);color:#18181a;border-radius:10px;padding:8px 10px;box-shadow:0 8px 24px rgba(0,0,0,.35);animation:fade .3s ease both;}
+  .banner .icon-tile{width:38px;height:38px;border-radius:8px;}
+  .banner .icon-tile svg{width:20px;height:20px;}
+  .banner b{font-size:.8rem;display:block;}
+  .banner small{font-size:.68rem;color:#65635c;}
+  .banner .shop{margin-left:auto;background:#18181a;color:#fff;border:none;border-radius:999px;padding:6px 11px;font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap;}
+  .controls{display:flex;align-items:center;gap:10px;padding:10px 12px;color:#e8e6e0;}
+  .controls button{background:none;border:none;cursor:pointer;display:flex;padding:2px;}
+  .controls button svg{width:18px;height:18px;fill:#e8e6e0;}
+  .scrub{position:relative;flex:1;height:18px;cursor:pointer;}
+  .scrub .rail2{position:absolute;left:0;right:0;top:7px;height:4px;border-radius:4px;background:rgba(255,255,255,.2);}
+  .scrub .fill{position:absolute;left:0;top:7px;height:4px;border-radius:4px;background:#ff5a45;}
+  .scrub .win{position:absolute;top:5px;height:8px;border-radius:3px;background:rgba(255,216,138,.55);}
+  .scrub .head{position:absolute;top:3px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:#ff5a45;}
+  .time{font-family:'IBM Plex Mono',monospace;font-size:.7rem;white-space:nowrap;}
+  .shelf{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px;display:flex;flex-direction:column;gap:8px;}
+  .shelf-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);transition:border-color .2s ease, background .2s ease;}
+  .shelf-item.now{border-color:var(--accent);background:var(--bad-soft);}
+  .shelf-item .icon-tile{width:34px;height:34px;border-radius:8px;}
+  .shelf-item .icon-tile svg{width:18px;height:18px;}
+  .shelf-item .rtext{flex:1;min-width:0;}
+  .shelf-item .rtext b{font-size:.8rem;display:block;}
+  .shelf-item .rtext span{font-size:.7rem;color:var(--text-faint);}
+  .now-tag{font-size:.62rem;font-weight:800;color:var(--accent);letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;}
+  .shelf-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
+
+  .footnote{text-align:center;font-size:.76rem;color:var(--text-faint);padding-top:6px;line-height:1.6;}
+  @media (max-width:560px){.app{flex-direction:column;}.rail{display:none;}.main{padding:18px 16px 20px;}.video-card{flex-wrap:wrap;}}
+  @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important;}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="masthead">
+    <div>
+      <h1>Studio · Smart Product Recommendations</h1>
+      <div class="sub">Product concept for YouTube Shopping: relevant, trustworthy, well-timed product tags</div>
+    </div>
+    <span class="concept-pill">Concept prototype</span>
+  </div>
+
+  <div class="frame">
+    <div class="topbar">
+      <div class="mark"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+      <div class="brand"><b>YouTube Studio</b><span>Products</span></div>
+      <div class="spacer"></div>
+      <div class="topbar-tag"><span class="dot"></span>Smart Recommendations</div>
+    </div>
+
+    <div class="app">
+      <div class="rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+
+      <div class="main">
+        <div class="video-card">
+          <div class="thumb" aria-hidden="true"></div>
+          <div class="video-meta">
+            <h2>Things I Miss About My Childhood</h2>
+            <div class="row"><span>14:22</span><span>Published today</span><span id="tag-status">No products tagged yet</span></div>
+          </div>
+        </div>
+
+        <div class="stepper" role="tablist">
+          <button class="step-btn" role="tab" aria-selected="true" data-step="1" id="tab-1"><span class="num">1</span>Understand content</button>
+          <button class="step-btn" role="tab" aria-selected="false" data-step="2" id="tab-2"><span class="num">2</span>Smart recommendations</button>
+          <button class="step-btn" role="tab" aria-selected="false" data-step="3" id="tab-3"><span class="num">3</span>Review &amp; preview</button>
+        </div>
+
+        <!-- STEP 1 -->
+        <div class="panel" id="panel-1" role="tabpanel" aria-labelledby="tab-1">
+          <div class="analysing" id="analysing">
+            <div class="spinner" aria-hidden="true"></div>
+            <div>Reading your video…</div>
+            <div class="log" id="log"></div>
+          </div>
+
+          <div id="analysis" hidden>
+            <div class="panel">
+              <p class="section-title">Four signals, fused into one score</p>
+              <div class="signal-strip">
+                <div class="signal fade-in">
+                  <span class="label">Content</span>
+                  <div class="pills"><span class="pill">childhood nostalgia</span><span class="pill">90s–2000s pop culture</span><span class="pill">hand‑held gaming</span><span class="pill">printed photos</span></div>
+                  <p>From the title, transcript, visuals and chapters. No product is mentioned or shown, so today's auto-tagging finds nothing.</p>
+                </div>
+                <div class="signal fade-in" style="animation-delay:.08s">
+                  <span class="label">Audience</span>
+                  <div class="pills"><span class="pill">25–40 skew</span><span class="pill">high retro affinity</span><span class="pill">₹500–₹6,000 comfort</span></div>
+                  <p>Aggregated, non-identifying data from this channel's own Studio Analytics, including price-point fit.</p>
+                </div>
+                <div class="signal fade-in" style="animation-delay:.16s">
+                  <span class="label">Shopping performance</span>
+                  <div class="pills"><span class="pill">retro‑tech ↑ 90d</span><span class="pill">analog hobbies ↑</span></div>
+                  <p>Nostalgia videos are converting above average in these categories this quarter.</p>
+                </div>
+                <div class="signal new fade-in" style="animation-delay:.24s">
+                  <span class="label">Product trust <em>new</em></span>
+                  <div class="pills"><span class="pill">ratings across retailers</span><span class="pill">seller standing</span><span class="pill">stock</span><span class="pill">return rate</span></div>
+                  <p>Keeps out products that are out of stock, unproven or mislabelled, however well they match.</p>
+                </div>
+              </div>
+
+              <div class="timeline-box">
+                <div class="toolbar">
+                  <p class="section-title">Moments detected in your video · tap one</p>
+                </div>
+                <div class="track" id="track"><div class="line"></div></div>
+                <div class="track-labels"><span>0:00</span><span>14:22</span></div>
+                <div class="moment-detail" id="moment-detail" aria-live="polite"></div>
+              </div>
+
+              <div class="action-bar">
+                <span class="count">4 moments found · 7 candidate products checked</span>
+                <button class="btn" id="to-recs">See recommendations →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="panel" id="panel-2" role="tabpanel" aria-labelledby="tab-2" hidden>
+          <div class="toolbar">
+            <div class="seg" role="group" aria-label="Compare approaches">
+              <button id="mode-smart" aria-pressed="true">Smart recommendations</button>
+              <button id="mode-keyword" aria-pressed="false">Keyword match (today)</button>
+            </div>
+            <label class="switch" id="med-switch"><input type="checkbox" id="show-med" checked> Include Medium confidence</label>
+          </div>
+
+          <div id="smart-view" class="panel">
+            <p class="prompt-line">Based on what your video is about, who watches it, what converts, and what's actually good and in stock, these could belong alongside it.</p>
+            <div class="grid" id="grid"></div>
+
+            <details class="filtered" id="filtered">
+              <summary><span>Filtered out before you saw them <span class="hint">(3)</span></span><span class="chev">▾</span></summary>
+              <div class="filtered-list" id="filtered-list"></div>
+            </details>
+
+            <div class="action-bar">
+              <span class="count"><b id="sel-count">0</b> selected · nothing is tagged without your choice</span>
+              <button class="btn" id="go-review">Review &amp; tag →</button>
+            </div>
+          </div>
+
+          <div id="keyword-view" class="panel" hidden>
+            <p class="prompt-line">What simple keyword matching returns for the same video. Each one matches a word; none fits.</p>
+            <div class="grid" id="kw-grid"></div>
+            <div class="action-bar">
+              <span class="count">These are the patterns found in an audit of ~65 real tags across 8 Indian creators.</span>
+              <button class="btn-ghost" id="back-smart">← Back to smart recommendations</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="panel" id="panel-3" role="tabpanel" aria-labelledby="tab-3" hidden>
+          <div class="success">
+            <svg viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 20.6 7.4l-1.4-1.4z"/></svg>
+            <div>
+              <h3 id="success-title">Products tagged</h3>
+              <p>Each product is labelled for viewers and timed to its moment. Press play to see what a viewer sees.</p>
+            </div>
+          </div>
+
+          <div class="preview-wrap">
+            <div class="player">
+              <div class="screen" id="screen">
+                <div class="scene" id="scene">Things I Miss About My Childhood</div>
+                <button class="bigplay" id="bigplay" aria-label="Play preview"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+                <div id="banner-slot"></div>
+              </div>
+              <div class="controls">
+                <button id="playpause" aria-label="Play"><svg viewBox="0 0 24 24" id="pp-icon"><path d="M8 5v14l11-7z"/></svg></button>
+                <div class="scrub" id="scrub" role="slider" aria-label="Seek" aria-valuemin="0" aria-valuemax="862" aria-valuenow="0" tabindex="0">
+                  <div class="rail2"></div><div id="wins"></div><div class="fill" id="fill"></div><div class="head" id="head"></div>
+                </div>
+                <span class="time" id="time">0:00 / 14:22</span>
+              </div>
+            </div>
+            <div class="shelf">
+              <div class="shelf-head">
+                <p class="section-title">Products under the video</p>
+                <span class="now-tag" id="shelf-mode">Timed</span>
+              </div>
+              <div id="shelf" class="panel" style="gap:8px"></div>
+            </div>
+          </div>
+
+          <div class="action-bar">
+            <button class="btn-ghost" id="go-back">← Back to recommendations</button>
+            <span class="count">Timestamps are suggested by the engine and confirmed by you. They build on YouTube's existing product-timestamp feature.</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="footnote">A product concept by Sai Pradyumna, exploring Smart Product Recommendations for YouTube Shopping.<br>Independent work; not affiliated with YouTube. Products, prices and ratings are illustrative.</div>
+</div>
+
+<script>
+(function(){
+  var DUR = 862, WIN = 30;
+  var ICONS = {
+    handheld:'<svg viewBox="0 0 64 64"><rect x="14" y="8" width="36" height="48" rx="7" fill="none" stroke="C" stroke-width="3"/><rect x="20" y="16" width="24" height="16" rx="2" fill="C" opacity=".25"/><circle cx="24" cy="42" r="3" fill="C"/><circle cx="34" cy="42" r="3" fill="C"/><circle cx="29" cy="37" r="3" fill="C"/><circle cx="29" cy="47" r="3" fill="C"/></svg>',
+    camera:'<svg viewBox="0 0 64 64"><rect x="8" y="18" width="48" height="32" rx="6" fill="none" stroke="C" stroke-width="3"/><rect x="20" y="10" width="14" height="10" rx="2" fill="C" opacity=".3"/><circle cx="32" cy="34" r="10" fill="none" stroke="C" stroke-width="3"/><circle cx="32" cy="34" r="4" fill="C"/></svg>',
+    board:'<svg viewBox="0 0 64 64"><rect x="10" y="10" width="44" height="44" rx="6" fill="none" stroke="C" stroke-width="3"/><line x1="10" y1="10" x2="54" y2="54" stroke="C" stroke-width="3"/><circle cx="22" cy="22" r="2.6" fill="C"/><circle cx="42" cy="42" r="2.6" fill="C"/><circle cx="46" cy="18" r="2.6" fill="C"/></svg>',
+    comics:'<svg viewBox="0 0 64 64"><rect x="14" y="10" width="30" height="42" rx="3" fill="none" stroke="C" stroke-width="3"/><rect x="20" y="16" width="30" height="42" rx="3" fill="none" stroke="C" stroke-width="3"/><line x1="26" y1="26" x2="44" y2="26" stroke="C" stroke-width="2.5"/><line x1="26" y1="33" x2="44" y2="33" stroke="C" stroke-width="2.5"/><line x1="26" y1="40" x2="38" y2="40" stroke="C" stroke-width="2.5"/></svg>',
+    bag:'<svg viewBox="0 0 64 64"><rect x="14" y="20" width="36" height="34" rx="6" fill="none" stroke="C" stroke-width="3"/><path d="M24 20v-4a8 8 0 0 1 16 0v4" fill="none" stroke="C" stroke-width="3"/></svg>',
+    frame:'<svg viewBox="0 0 64 64"><rect x="12" y="12" width="40" height="40" rx="4" fill="none" stroke="C" stroke-width="3"/><rect x="20" y="20" width="24" height="24" rx="2" fill="C" opacity=".25"/></svg>',
+    console:'<svg viewBox="0 0 64 64"><rect x="8" y="22" width="48" height="22" rx="8" fill="none" stroke="C" stroke-width="3"/><circle cx="20" cy="33" r="3" fill="C"/><circle cx="44" cy="33" r="3" fill="C"/></svg>',
+    book:'<svg viewBox="0 0 64 64"><path d="M12 14h18a4 4 0 0 1 4 4v34a4 4 0 0 0-4-4H12z" fill="none" stroke="C" stroke-width="3"/><path d="M52 14H34v38a4 4 0 0 1 4-4h14z" fill="none" stroke="C" stroke-width="3"/></svg>'
+  };
+  function icon(name, color, bg){
+    return '<div class="icon-tile" style="background:var(--'+bg+')">'+ICONS[name].replace(/C/g,'var(--'+color+')')+'</div>';
+  }
+  function fmt(s){s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}
+  function rupees(n){return '₹'+n.toLocaleString('en-IN');}
+  function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+  var products = [
+    {id:'handheld', name:'Pocket Arcade 300-in-1 Handheld', price:2499, retailer:'Flipkart', rating:4.2, ratings:3412, seller:'Seller 4.4★ · 3 yrs', conf:'high', label:'similar', start:65, icon:'handheld', color:'ai', bg:'ai-soft',
+     why:'At 1:05 you describe swapping game cartridges after school. Viewers of this channel engage strongly with retro handheld content.',
+     scores:{Content:92, Audience:84, Performance:78, Trust:81}},
+    {id:'camera', name:'Instant Film Camera', price:5999, retailer:'Amazon', rating:4.5, ratings:8920, seller:'Brand store', conf:'high', label:'similar', start:252, icon:'camera', color:'warn', bg:'warn-soft',
+     why:'At 4:12 you flip through printed photo albums. Instant cameras let viewers recreate that physical-photo feeling today.',
+     scores:{Content:88, Audience:80, Performance:85, Trust:94}},
+    {id:'board', name:'Family Game Night Classic Reissue', price:899, retailer:'Flipkart', rating:4.3, ratings:1206, seller:'Seller 4.1★ · 2 yrs', conf:'med', label:'similar', start:468, icon:'board', color:'good', bg:'good-soft',
+     why:'Your story about weekend game nights with cousins matches a pattern this audience has responded to before.',
+     scores:{Content:74, Audience:70, Performance:62, Trust:77}},
+    {id:'comics', name:'Saturday Morning Comics Anthology', price:649, retailer:'Amazon', rating:4.6, ratings:312, seller:'Seller 4.6★ · 5 yrs', conf:'med', label:'seen', start:630, icon:'comics', color:'ai', bg:'ai-soft',
+     why:'You hold up this exact anthology at 10:30. Content fit is strong; audience and sales signals are still thin, so it stays Medium.',
+     scores:{Content:95, Audience:58, Performance:55, Trust:72}}
+  ];
+  var moments = [
+    {t:65, title:'Swapping game cartridges', quote:'“We used to trade cartridges at the gate after school…”', theme:'hand-held gaming', pid:'handheld'},
+    {t:252, title:'Flipping through photo albums', quote:'“Every photo was printed, and you only had 36 shots…”', theme:'printed photos', pid:'camera'},
+    {t:468, title:'Weekend game nights', quote:'“Sunday nights were board games with the cousins…”', theme:'family games', pid:'board'},
+    {t:630, title:'Comics from the corner shop', quote:'“I still have this one. Look at the cover…”', theme:'comics · item shown on screen', pid:'comics'}
+  ];
+  var filtered = [
+    {name:'Retro Console Mini', why:'Strong match, but out of stock at every retailer.', rule:'REQ-23 · stock'},
+    {name:'Kids\' Photo Frame Set', why:'Matches “photo” and “childhood”, but it\'s made for young children, a different buyer from this 25–40 audience.', rule:'REQ-10 · keyword only'},
+    {name:'Cartridge Cleaning Kit', why:'3 ratings; seller joined 5 months ago. Below the trust floor.', rule:'REQ-19 · trust'}
+  ];
+  var keyword = [
+    {name:'Kids\' School Bag', price:799, match:'matched “childhood”', icon:'bag', fail:'Wrong buyer', note:'Made for children. This audience is 25–40 and watching for nostalgia, not school supplies.'},
+    {name:'Baby Photo Album', price:549, match:'matched “photo”', icon:'frame', fail:'Wrong job', note:'For new parents to store baby photos. The video is about printed memories, not newborns.'},
+    {name:'Retro Console Mini', price:4999, match:'matched “games”', icon:'console', fail:'Out of stock', note:'Relevant, but no retailer has it. Viewers who tap get “Notify me”.'},
+    {name:'Childhood Memories Journal', price:299, match:'matched “childhood”', icon:'book', fail:'Unproven', note:'2 ratings and an AI-generated product image. A tag reads as the creator\'s endorsement.'}
+  ];
+
+  var selected = {handheld:true, camera:true};
+  var started = false;
+
+  /* ---- tabs ---- */
+  var tabs = document.querySelectorAll('.step-btn');
+  function showStep(step){
+    tabs.forEach(function(t){t.setAttribute('aria-selected', t.dataset.step===step?'true':'false');});
+    ['1','2','3'].forEach(function(k){document.getElementById('panel-'+k).hidden = (k!==step);});
+    if(step==='3'){buildReview();} else {pause();}
+  }
+  tabs.forEach(function(t){t.addEventListener('click',function(){showStep(t.dataset.step);});});
+
+  /* ---- step 1: analysis ---- */
+  var logs = ['Reading title and description…','Transcribing 14:22 of audio…','Scanning frames for objects…','Loading channel audience signals…','Checking 7 candidate products…'];
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function runAnalysis(){
+    var i=0, log=document.getElementById('log');
+    var iv=setInterval(function(){
+      if(i<logs.length){log.textContent=logs[i++];}
+      else{clearInterval(iv);document.getElementById('analysing').hidden=true;document.getElementById('analysis').hidden=false;selectMoment(0);}
+    }, reduce?10:380);
+  }
+  var track=document.getElementById('track');
+  moments.forEach(function(m,i){
+    var b=document.createElement('button');
+    b.className='moment';b.style.left=(m.t/DUR*100)+'%';
+    b.setAttribute('aria-label',fmt(m.t)+' '+m.title);
+    b.addEventListener('click',function(){selectMoment(i);});
+    track.appendChild(b);
+  });
+  function selectMoment(i){
+    var m=moments[i];
+    track.querySelectorAll('.moment').forEach(function(b,j){b.classList.toggle('on',j===i);});
+    var p=products.find(function(x){return x.id===m.pid;});
+    document.getElementById('moment-detail').innerHTML=
+      '<span class="ts">'+fmt(m.t)+'</span><div><p><b>'+esc(m.title)+'</b></p><p class="quote">'+esc(m.quote)+'</p>'+
+      '<p style="font-size:.76rem;color:var(--text-faint)">Theme: '+esc(m.theme)+' → suggests <b style="color:var(--text)">'+esc(p.name)+'</b></p>'+
+      '<button class="linkish" data-jump="'+p.id+'">See this suggestion →</button></div>';
+    document.querySelector('[data-jump]').addEventListener('click',function(){jumpTo(p.id);});
+  }
+  document.getElementById('to-recs').addEventListener('click',function(){showStep('2');});
+
+  /* ---- step 2: cards ---- */
+  var grid=document.getElementById('grid');
+  function renderCards(){
+    var showMed=document.getElementById('show-med').checked;
+    grid.innerHTML='';
+    products.forEach(function(p){
+      if(p.conf==='med' && !showMed){delete selected[p.id];return;}
+      var avg=Math.round((p.scores.Content+p.scores.Audience+p.scores.Performance+p.scores.Trust)/4);
+      var c=document.createElement('div');
+      c.className='card selectable'+(selected[p.id]?' selected':'');
+      c.id='card-'+p.id;c.tabIndex=0;c.setAttribute('role','checkbox');c.setAttribute('aria-checked',selected[p.id]?'true':'false');
+      var scoreRows=Object.keys(p.scores).map(function(k){return '<span>'+k+'</span><span class="sbar"><i style="width:'+p.scores[k]+'%"></i></span><span class="val">'+p.scores[k]+'</span>';}).join('');
+      c.innerHTML=
+        '<div class="card-top">'+icon(p.icon,p.color,p.bg)+
+          '<div class="card-heading"><h3>'+esc(p.name)+'</h3>'+
+          '<div class="meta-line"><span class="price">'+rupees(p.price)+'</span><span>'+p.retailer+'</span>'+
+          '<span class="badge '+p.label+'">'+(p.label==='seen'?'Seen in video':'Similar item')+'</span></div></div></div>'+
+        '<div class="trust"><span><b>'+p.rating+'★</b> · '+p.ratings.toLocaleString('en-IN')+' ratings</span><span class="ok">In stock</span><span>'+p.seller+'</span></div>'+
+        '<div class="confidence conf-'+p.conf+'"><div class="bar"><i style="width:'+avg+'%"></i></div><span class="tag">'+(p.conf==='high'?'HIGH':'MEDIUM')+' CONFIDENCE</span></div>'+
+        '<div class="why"><div class="why-top"><svg viewBox="0 0 24 24"><path d="M12 2l1.9 5.9L20 10l-6.1 2.1L12 18l-1.9-5.9L4 10l6.1-2.1z"/></svg><p>'+esc(p.why)+'</p></div>'+
+          '<button class="linkish" data-why>Show signal breakdown</button><div class="scores" hidden>'+scoreRows+'</div></div>'+
+        '<div class="ts-row">Show to viewers at <span class="ts-chip"><button data-ts="-5" aria-label="5 seconds earlier">−</button><span data-tsval>'+fmt(p.start)+'–'+fmt(p.start+WIN)+'</span><button data-ts="5" aria-label="5 seconds later">+</button></span></div>'+
+        '<div class="select-row"><span class="check"><span class="checkbox"><svg viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 20.6 7.4l-1.4-1.4z"/></svg></span>Select to tag</span></div>';
+      c.addEventListener('click',function(e){
+        if(e.target.closest('[data-why]')){
+          var s=c.querySelector('.scores');s.hidden=!s.hidden;
+          e.target.textContent=s.hidden?'Show signal breakdown':'Hide signal breakdown';return;
+        }
+        var ts=e.target.closest('[data-ts]');
+        if(ts){
+          p.start=Math.min(DUR-WIN,Math.max(0,p.start+parseInt(ts.dataset.ts,10)));
+          c.querySelector('[data-tsval]').textContent=fmt(p.start)+'–'+fmt(p.start+WIN);return;
+        }
+        if(e.target.closest('.ts-row, .why')) return;
+        toggle(p.id,c);
+      });
+      c.addEventListener('keydown',function(e){
+        if((e.key==='Enter'||e.key===' ')&&e.target===c){e.preventDefault();toggle(p.id,c);}
+      });
+      grid.appendChild(c);
+    });
+    updateCount();
+  }
+  function toggle(id,c){
+    if(selected[id]){delete selected[id];}else{selected[id]=true;}
+    c.classList.toggle('selected',!!selected[id]);c.setAttribute('aria-checked',selected[id]?'true':'false');
+    updateCount();
+  }
+  function updateCount(){
+    var n=Object.keys(selected).length;
+    document.getElementById('sel-count').textContent=n;
+    document.getElementById('go-review').disabled=(n===0);
+  }
+  document.getElementById('show-med').addEventListener('change',renderCards);
+
+  document.getElementById('filtered-list').innerHTML=filtered.map(function(f){
+    return '<div class="f-item"><span class="x">✕</span><div><b>'+esc(f.name)+'</b><span>'+esc(f.why)+'</span></div><span class="rule">'+f.rule+'</span></div>';
+  }).join('');
+
+  document.getElementById('kw-grid').innerHTML=keyword.map(function(k){
+    return '<div class="card fail"><div class="card-top">'+icon(k.icon,'text-faint','surface-2')+
+      '<div class="card-heading"><h3>'+esc(k.name)+'</h3><div class="meta-line"><span class="price">'+rupees(k.price)+'</span><span class="match">'+k.match+'</span></div></div></div>'+
+      '<div class="fail-note"><b>'+k.fail+'</b>'+esc(k.note)+'</div></div>';
+  }).join('');
+
+  var modeSmart=document.getElementById('mode-smart'), modeKw=document.getElementById('mode-keyword');
+  function setMode(kw){
+    modeSmart.setAttribute('aria-pressed',kw?'false':'true');modeKw.setAttribute('aria-pressed',kw?'true':'false');
+    document.getElementById('smart-view').hidden=kw;document.getElementById('keyword-view').hidden=!kw;
+    document.getElementById('med-switch').style.visibility=kw?'hidden':'visible';
+  }
+  modeSmart.addEventListener('click',function(){setMode(false);});
+  modeKw.addEventListener('click',function(){setMode(true);});
+  document.getElementById('back-smart').addEventListener('click',function(){setMode(false);});
+
+  function jumpTo(id){
+    var p=products.find(function(x){return x.id===id;});
+    if(p.conf==='med' && !document.getElementById('show-med').checked){document.getElementById('show-med').checked=true;renderCards();}
+    setMode(false);showStep('2');
+    var c=document.getElementById('card-'+id);
+    c.scrollIntoView({behavior:reduce?'auto':'smooth',block:'center'});
+    c.classList.add('flash');setTimeout(function(){c.classList.remove('flash');},1400);
+  }
+  document.getElementById('go-review').addEventListener('click',function(){showStep('3');});
+  document.getElementById('go-back').addEventListener('click',function(){showStep('2');});
+
+  /* ---- step 3: preview player ---- */
+  var t=0, playing=false, last=0, SPEED=40;
+  var tagged=[];
+  function buildReview(){
+    tagged=products.filter(function(p){return selected[p.id];}).sort(function(a,b){return a.start-b.start;});
+    document.getElementById('success-title').textContent=tagged.length+' product'+(tagged.length===1?'':'s')+' tagged';
+    document.getElementById('tag-status').textContent=tagged.length+' product'+(tagged.length===1?'':'s')+' tagged';
+    document.getElementById('wins').innerHTML=tagged.map(function(p){
+      return '<div class="win" style="left:'+(p.start/DUR*100)+'%;width:'+(WIN/DUR*100)+'%"></div>';
+    }).join('');
+    t=0; pause(); lastActive='init';
+    renderFrame();
+  }
+  function active(){return tagged.find(function(p){return t>=p.start && t<p.start+WIN;});}
+  var lastActive='init';
+  function renderFrame(){
+    document.getElementById('fill').style.width=(t/DUR*100)+'%';
+    document.getElementById('head').style.left=(t/DUR*100)+'%';
+    document.getElementById('time').textContent=fmt(t)+' / '+fmt(DUR);
+    document.getElementById('scrub').setAttribute('aria-valuenow',Math.round(t));
+    var m=null; moments.forEach(function(x){if(t>=x.t-20)m=x;});
+    document.getElementById('scene').textContent=m?fmt(m.t)+' · '+m.title:'Things I Miss About My Childhood';
+    var a=active(), key=a?a.id:'none';
+    if(key!==lastActive){
+      lastActive=key;
+      document.getElementById('banner-slot').innerHTML=a?
+        '<div class="banner">'+icon(a.icon,a.color,a.bg)+'<div><b>'+esc(a.name)+'</b><small>'+rupees(a.price)+' · '+(a.label==='seen'?'Seen in video':'Similar item')+'</small></div><button class="shop">View</button></div>':'';
+      var order=a?[a].concat(tagged.filter(function(p){return p!==a;})):tagged;
+      document.getElementById('shelf').innerHTML=order.map(function(p){
+        var now=(a&&p===a);
+        return '<div class="shelf-item'+(now?' now':'')+'">'+icon(p.icon,p.color,p.bg)+
+          '<div class="rtext"><b>'+esc(p.name)+'</b><span>'+rupees(p.price)+' · '+(p.label==='seen'?'Seen in video':'Similar item')+' · '+fmt(p.start)+'</span></div>'+
+          (now?'<span class="now-tag">On screen now</span>':'')+'</div>';
+      }).join('') || '<span class="count">No products selected.</span>';
+    }
+  }
+  function loop(ts){
+    if(!playing)return;
+    if(last){t+=(ts-last)/1000*SPEED;}
+    last=ts;
+    if(t>=DUR){t=DUR;pause();}
+    renderFrame();
+    if(playing)requestAnimationFrame(loop);
+  }
+  var PLAY='<path d="M8 5v14l11-7z"/>', PAUSE='<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>';
+  function play(){
+    if(t>=DUR)t=0;
+    playing=true;last=0;document.getElementById('bigplay').hidden=true;
+    document.getElementById('pp-icon').innerHTML=PAUSE;document.getElementById('playpause').setAttribute('aria-label','Pause');
+    requestAnimationFrame(loop);
+  }
+  function pause(){
+    playing=false;document.getElementById('bigplay').hidden=false;
+    document.getElementById('pp-icon').innerHTML=PLAY;document.getElementById('playpause').setAttribute('aria-label','Play');
+  }
+  document.getElementById('bigplay').addEventListener('click',play);
+  document.getElementById('playpause').addEventListener('click',function(){playing?pause():play();});
+  var scrub=document.getElementById('scrub');
+  function seekFromEvent(e){
+    var r=scrub.getBoundingClientRect();
+    t=Math.min(DUR,Math.max(0,(e.clientX-r.left)/r.width*DUR));renderFrame();
+  }
+  var dragging=false;
+  scrub.addEventListener('pointerdown',function(e){dragging=true;scrub.setPointerCapture(e.pointerId);seekFromEvent(e);});
+  scrub.addEventListener('pointermove',function(e){if(dragging)seekFromEvent(e);});
+  scrub.addEventListener('pointerup',function(){dragging=false;});
+  scrub.addEventListener('keydown',function(e){
+    if(e.key==='ArrowRight'){t=Math.min(DUR,t+10);renderFrame();}
+    if(e.key==='ArrowLeft'){t=Math.max(0,t-10);renderFrame();}
+  });
+
+  renderCards();
+  runAnalysis();
+})();
+</script>
+</body>
+</html>
